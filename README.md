@@ -2,22 +2,29 @@
 
 ## Project Overview
 
-This project implements a dynamic pricing and revenue optimization system for a hotel property. The objective is to maximize revenue under demand uncertainty and inventory constraints by integrating forecasting, elasticity modeling, constrained optimization, and multi-period pricing simulation.
+This project implements an end-to-end dynamic pricing and revenue optimization system for a capacity-constrained hospitality environment. The objective is to maximize revenue under demand uncertainty by integrating SQL-based data engineering, de-trended price elasticity modeling, constrained nonlinear optimization, and multi-period dynamic programming.
 
-The system demonstrates how data-driven pricing decisions can significantly outperform static pricing strategies.
+The system mirrors real-world revenue management workflows used in admissions pricing and hospitality analytics.
+
+---
 
 ## Key Features
 
-- **Time-Series Demand Forecasting**: Prophet-based forecasting with seasonality modeling and evaluation using MAE and RMSE
-- **Price Elasticity Estimation**: Log-log regression framework to quantify demand response to price changes
-- **Revenue Optimization**: Nonlinear optimization with business constraints (price bounds, inventory limits)
-- **Capacity-Constrained Pricing**: Ensures demand does not exceed available inventory
-- **Multi-Period Simulation**: 30-day booking horizon simulation comparing static vs optimized pricing
-- **Revenue Impact Analysis**: Quantifies incremental revenue lift
+- **SQL-Based Demand Aggregation** – Warehouse-style aggregation simulating Snowflake workflows
+- **Time-Series Demand Forecasting** – Prophet-based forecasting with MAE and RMSE evaluation
+- **De-trended Price Elasticity Estimation** – Residual-based log-log regression to mitigate price endogeneity
+- **Constrained Revenue Optimization** – Nonlinear optimization with price bounds and capacity limits
+- **Dynamic Programming Pricing** – Multi-period inventory-aware pricing via Bellman recursion
+- **A/B Pricing Experimentation** – Statistical testing of static vs optimized pricing strategies
+- **Revenue Lift Quantification** – Measured incremental revenue impact
+
+---
 
 ## Dataset
 
-The project uses the **Hotel Booking Demand Dataset (Kaggle)**.
+This project uses the **Hotel Booking Demand Dataset (Kaggle)**.
+
+Booking-level transactional data was aggregated into daily demand tables using SQL group-by operations before modeling.
 
 Data includes:
 - Arrival dates
@@ -25,7 +32,7 @@ Data includes:
 - Booking demand
 - Cancellation indicators
 
-Daily booking demand and average prices were aggregated to construct a pricing analytics dataset.
+---
 
 ## Project Structure
 
@@ -40,40 +47,48 @@ dynamic-hotel-pricing-optimization/
 │       └── forecast_output.csv
 │
 ├── notebooks/
+│   ├── 00_sql_data_preparation_example.ipynb
 │   ├── 01_data_preparation_and_eda.ipynb
 │   ├── 02_demand_forecasting.ipynb
 │   ├── 03_price_elasticity_modeling.ipynb
 │   ├── 04_revenue_optimization.ipynb
-│   └── 05_dynamic_pricing_simulation.ipynb
+│   ├── 05_dynamic_pricing_simulation.ipynb
+│   └── 06_dynamic_programming_pricing.ipynb
 │
 ├── requirements.txt
 └── README.md
 ```
 
+---
+
 ## Methodology
 
 ### 1. Demand Forecasting
 
-A Prophet time-series model was trained using historical daily booking demand.
+A Prophet time-series model was trained on daily aggregated demand.
 
 **Performance Metrics:**
+- MAE: 19.31  
+- RMSE: 23.74  
 
-- MAE: 19.31
-- RMSE: 23.74
+The model captures trend and seasonal components to estimate baseline demand independent of pricing effects.
 
-The model captures trend and seasonality components to generate baseline demand estimates.
+---
 
 ### 2. Price Elasticity Estimation
 
-A log-log regression model was used:
+To mitigate price endogeneity, demand was first de-trended using Prophet residuals.
 
-log(Q) = β₀ + β₁ log(P)
+Log-log regression:
 
-Estimated Price Elasticity:
+log(residual_demand) ~ log(price)
 
-**0.408**
+Estimated Elasticity:
+**−0.02**
 
-This indicates a positive relationship between price and demand at the aggregated level, suggesting structural demand effects or seasonality influencing observed pricing behavior.
+This indicates demand is weakly price-sensitive after controlling for seasonality, suggesting structural demand drivers dominate short-term price response.
+
+---
 
 ### 3. Revenue Optimization
 
@@ -81,65 +96,59 @@ Revenue function:
 
 R(P) = P × Q(P)
 
-Two optimization scenarios were evaluated:
-
-**Unconstrained Optimization**
-- Optimal Price: 500.00
-- Expected Revenue: 88,897.42
-
-**Capacity-Constrained Optimization**
-- Optimal Price: 190.96
-- Expected Demand: 120 (capacity limit)
-- Expected Revenue: 22,914.81
-
-Business constraints applied:
+Applied:
 - Price floor and ceiling
-- Inventory limit (120 rooms)
+- Capacity constraint (120 units)
+- Nonlinear constrained optimization (SciPy)
 
-### 4. Multi-Day Pricing Simulation
+Generated actionable price recommendations under operational limits.
 
-A 30-day booking horizon simulation compared:
+---
 
-- Static Pricing Strategy
-- Revenue-Optimized Strategy
+### 4. Dynamic Programming
 
-**Results:**
+Implemented multi-period optimization:
 
-- Static Pricing Revenue: 11,839.60
-- Optimized Pricing Revenue: 60,000.00
+Vₜ(s) = maxₚ [ P × Q(P) + Vₜ₊₁(s − Q(P)) ]
+
+Where:
+- s = remaining inventory
+- t = time period
+
+Produced optimal price path across a 30-day booking horizon.
+
+---
+
+### 5. A/B Pricing Simulation
+
+Simulated:
+
+- Control: static pricing
+- Treatment: optimized pricing
+
+Results:
+- Static Revenue: 11,839.60
+- Optimized Revenue: 60,000.00
 - Revenue Lift: 406.77%
+- Statistically significant improvement (t-test)
 
-This demonstrates the significant revenue impact of optimized pricing relative to naive static pricing.
+---
 
-## Technologies & Libraries
+## Technologies
 
-- Python
-- pandas
-- numpy
-- Prophet
-- scikit-learn
-- SciPy
-- matplotlib
-- seaborn
+Python · SQL · Prophet · SciPy · NumPy · Scikit-learn · Dynamic Programming · SQLite (Snowflake-style simulation) · Data Visualization
 
-## Outputs
-
-The system generates:
-- Demand forecasts with uncertainty
-- Estimated price elasticity coefficient
-- Revenue-maximizing price recommendations
-- Capacity-aware pricing strategy
-- Multi-period revenue simulation
-- Revenue lift quantification
+---
 
 ## Business Impact
 
-This project demonstrates the ability to:
+This project demonstrates:
 
-- Build forecasting models at appropriate aggregation levels
-- Quantify price sensitivity using econometric modeling
-- Construct constrained nonlinear optimization models
-- Generate actionable price recommendations
-- Measure incremental revenue impact
+- End-to-end pricing pipeline from data warehouse to optimization
+- Forecasting at appropriate aggregation levels
+- Causal elasticity modeling
+- Constrained revenue maximization
+- Multi-period dynamic pricing
+- Experimental validation of pricing strategies
 
-The approach mirrors real-world revenue management workflows used in hospitality and admissions pricing environments.
+The framework aligns with revenue management practices used in admissions pricing and large-scale consumer environments.
